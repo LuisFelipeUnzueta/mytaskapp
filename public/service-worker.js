@@ -1,3 +1,5 @@
+const { addTaskToFirestore } = require("@/utils/firebase");
+
 const CACHE_NAME = 'static-cache-1';
 const CACHE_ASSETS = [
     '/icons/144x144.png',
@@ -14,4 +16,19 @@ self.addEventListener('install', (event) => {
                 });
         })
     );
-})
+});
+
+self.addEventListener('sync', (event) => {
+    if(event.tag === 'sync-tasks') {
+        event.waitUntil(syncTasksWithFirebase());
+    }
+});
+
+async function syncTasksWithFirebase() {
+    const tasks = await getTasksFromIndexedDb();
+    for( const task of tasks) {
+        await addTaskToFirestore(task);
+    }
+}
+
+async function getTasksFromIndexedDb() {}
