@@ -1,31 +1,79 @@
 import { openDB } from "idb";
 
 const dbName = 'tasks-db';
- 
 
-export async function initDB() {
-    return openDB(dbName, 1, {
-        upgrade(db) {
-            if(!db.objectStoreNames.contains('tasks')){
-                db.createObjectStore('tasks', {keyPath: 'id', autoincrement: true})
+
+export const openIndexedDb = () => {
+    return new Promise((resolve, reject) => {
+
+        const request = indexedDB.open(dbName, 1);
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('tasks')) {
+                db.createObjectStore('tasks', { keyPath: "id" });
             }
+        };
+
+        request.onsuccess = (event) => {
+            resolve(event.target.result);
+        };
+
+        request.onerror = (event) => {
+            reject(`Erro ao abrir banco local: ${event.target.onerrorCode}`);
+        };
+    });
+};
+
+export const addTask = async (task) => {
+
+    try {
+        const db = await openIndexedDb();
+        const transaction = db.transaction('tasks', 'readwrite');
+        const store = transaction.objectStore('tasks');
+
+        if(!task.id) {
+            task.id = Date.now();
         }
-    })
+
+        return new Promise((resolve, reject) => {
+            const request = store.put(task);
+
+            request.onsuccess = () => {
+                resolve();
+            }
+
+            request.onerror = (event) => {
+                console.error(`Erro ao adicionar tarefa ao db local: ${event.target.errorCode}`);
+                reject(`Erro ao adicionar tarefa: ${event.target.errorCode}`);
+            }
+        })
+    } catch (error) {
+        console.error('Erro no db local:', error);
+        throw new Error(`Erro ao adicionar tarefa no db local: ${error}`)
+    }
 }
 
-export async function addTask(task) {
-    const db = await initDB();
-    const tx = db.transaction('tasks', 'readwrite');
-    const store = tx.objectStore('tasks');
-    await store.add(task);
-    await tx.done;
-}
+export const getTasks = async (task) => {
 
-export async function getTasks() {
-    const db = await initDB();
-    const tx = db.transaction('tasks', 'readonly');
-    const store = tx.objectStore('tasks');
-    const allTasks = await store.getAll();
-    await tx.done;
-    return allTasks;
-}
+    try {
+        const db = await openIndexedDb();
+        const transaction = db.transaction('tasks', 'readonly');
+        const store = transaction.objectStore('tasks');
+
+        return new Promise((resolve, reject) => {
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                resolve();
+            }
+
+            request.onerror = (event) => {
+                reject(`Erro ao buscar tarefas do IndexedDB: ${event.target.errorCode}`);
+            };
+        });
+    } catch (error) {
+        console.error('Erro ao obter tarefas do IndexedDB:', error);
+        throw new Error(`Erro ao obter tarefas do IndexedDB: ${error}`);
+    }
+};

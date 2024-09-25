@@ -31,4 +31,20 @@ async function syncTasksWithFirebase() {
     }
 }
 
-async function getTasksFromIndexedDb() {}
+async function getTasksFromIndexedDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('tasks-db', 1);
+
+        request.onsuccess = (event) => {
+            const db = event.target.result;
+            const transaction = db.transaction(['task'], 'readonly');
+            const store = transaction.objectStore('tasks');
+            const getAllRequest = store.getAll();
+
+            getAllRequest.onsuccess = () => resolve(getAllRequest.result);
+            getAllRequest.onerror = () => reject('Erro ao obter tarefas gravadas localmente.')
+        };
+
+        request.onerror = () => reject('Erro ao abrir banco local.')
+    })
+}

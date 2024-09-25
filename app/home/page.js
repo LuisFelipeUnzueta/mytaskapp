@@ -10,7 +10,7 @@ export default function Home(){
 
     const handleAddTask = (e) => {
         e.preventDefault();
-        const newTask = { title, time, completed: false };
+        const newTask = { id: Date.now(), title, time, completed: false };
         addNewTask(newTask)
         setTitle('');
         setTime('');
