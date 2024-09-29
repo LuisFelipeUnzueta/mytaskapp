@@ -1,5 +1,3 @@
-import { openDB } from "idb";
-
 const dbName = 'tasks-db';
 
 
@@ -26,54 +24,54 @@ export const openIndexedDb = () => {
 };
 
 export const addTask = async (task) => {
-
     try {
-        const db = await openIndexedDb();
-        const transaction = db.transaction('tasks', 'readwrite');
+        const db = await openIndexedDB();
+        const transaction = db.transaction(['tasks'], 'readwrite');
         const store = transaction.objectStore('tasks');
 
-        if(!task.id) {
+        if (!task.id) {
             task.id = Date.now();
         }
 
+        task.synced = navigator.onLine;
+
         return new Promise((resolve, reject) => {
-            const request = store.put(task);
+            const request = store.put(task); 
 
             request.onsuccess = () => {
-                resolve();
-            }
+                resolve(); 
+            };
 
             request.onerror = (event) => {
-                console.error(`Erro ao adicionar tarefa ao db local: ${event.target.errorCode}`);
+                console.error(`Erro ao adicionar tarefa ao armazenamento local: ${event.target.errorCode}`);
                 reject(`Erro ao adicionar tarefa: ${event.target.errorCode}`);
-            }
-        })
-    } catch (error) {
-        console.error('Erro no db local:', error);
-        throw new Error(`Erro ao adicionar tarefa no db local: ${error}`)
-    }
-}
-
-export const getTasks = async (task) => {
-
-    try {
-        const db = await openIndexedDb();
-        const transaction = db.transaction('tasks', 'readonly');
-        const store = transaction.objectStore('tasks');
-
-        return new Promise((resolve, reject) => {
-            const request = store.getAll();
-
-            request.onsuccess = () => {
-                resolve();
-            }
-
-            request.onerror = (event) => {
-                reject(`Erro ao buscar tarefas do IndexedDB: ${event.target.errorCode}`);
             };
         });
     } catch (error) {
-        console.error('Erro ao obter tarefas do IndexedDB:', error);
-        throw new Error(`Erro ao obter tarefas do IndexedDB: ${error}`);
+        console.error('Erro no armazenamento local:', error);
+        throw new Error(`Erro ao adicionar tarefa no armazenamento local: ${error}`);
+    }
+};
+
+export const getTasks = async () => {
+    try {
+        const db = await openIndexedDB();
+        const transaction = db.transaction(['tasks'], 'readonly');
+        const store = transaction.objectStore('tasks');
+
+        return new Promise((resolve, reject) => {
+            const request = store.getAll(); 
+
+            request.onsuccess = (event) => {
+                resolve(event.target.result);
+            };
+
+            request.onerror = (event) => {
+                reject(`Erro ao buscar tarefas no armazenamento local: ${event.target.errorCode}`);
+            };
+        });
+    } catch (error) {
+        console.error('Erro ao obter tarefas do armazenamento local:', error);
+        throw new Error(`Erro ao obter tarefas do armazenamento local: ${error}`);
     }
 };
